@@ -1,219 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Player vs Bot Deflect Game</title>
-  <style>
-    canvas {
-      background: #111;
-      display: block;
-      margin: 0 auto;
-      border: 2px solid white;
-    }
-    body {
-      color: white;
-      text-align: center;
-      font-family: Arial, sans-serif;
-    }
-    button {
-      padding: 10px 15px;
-      font-size: 16px;
-      margin: 5px;
-      cursor: pointer;
-    }
-    #mobile-controls {
-      margin-top: 10px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ball Deflect Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        canvas {
+            border: 2px solid black;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Player vs Bot Deflect Game</h1>
-  <p>Use A/D keys, W key, or mobile buttons to move. Click "Deflect" or use Auto Parry!</p>
-  <p id="info">Score: 0 | Health: 3</p>
-  <canvas id="game" width="600" height="400"></canvas>
+    <canvas id="gameCanvas"></canvas>
+    <div id="controls">
+        <button id="wButton">W</button>
+        <button id="aButton">A</button>
+        <button id="sButton">S</button>
+        <button id="dButton">D</button>
+    </div>
 
-  <div>
-    <button id="deflectBtn">Deflect</button>
-    <button id="toggleAutoParry">Enable Auto Parry</button>
-  </div>
-  
-  <div id="mobile-controls">
-    <button id="moveLeft">Left</button>
-    <button id="moveRight">Right</button>
-    <button id="moveForward">Forward</button>
-  </div>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
 
-  <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
-    const info = document.getElementById("info");
-    const deflectBtn = document.getElementById("deflectBtn");
-    const toggleAutoParry = document.getElementById("toggleAutoParry");
-    const moveLeft = document.getElementById("moveLeft");
-    const moveRight = document.getElementById("moveRight");
-    const moveForward = document.getElementById("moveForward");
+        canvas.width = 800;
+        canvas.height = 600;
 
-    const player = { x: 300, y: 350, width: 40, height: 40, speed: 5 };
-    const bot = { x: 300, y: 10, width: 40, height: 40, speed: 3, originalX: 300 };
-    const ball = { x: 300, y: 200, radius: 15, speedX: 0, speedY: 3, active: true };
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            width: 50,
+            height: 50,
+            speed: 5,
+            dx: 0,
+            dy: 0,
+            color: "blue"
+        };
 
-    let keys = {};
-    let autoParry = false;
-    let deflectWindow = false;
-    let gameOver = false;
-    let health = 3;
-    let score = 0;
+        const ball = {
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: 15,
+            speed: 2,
+            dx: 2,
+            dy: 2,
+            color: "red"
+        };
 
-    deflectBtn.disabled = true;
+        const bot = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            width: 50,
+            height: 50,
+            color: "green"
+        };
 
-    toggleAutoParry.addEventListener("click", () => {
-      autoParry = !autoParry;
-      toggleAutoParry.textContent = autoParry ? "Disable Auto Parry" : "Enable Auto Parry";
-    });
+        const keys = {
+            w: false,
+            a: false,
+            s: false,
+            d: false
+        };
 
-    deflectBtn.addEventListener("click", () => {
-      if (deflectWindow && ball.active) {
-        ball.speedY *= -1; // Ball bounces off vertically
-        ball.speedX = Math.random() > 0.5 ? 3 : -3; // Random horizontal speed
-        deflectWindow = false;
-        deflectBtn.disabled = true;
-        score++;
-        updateInfo();
-      }
-    });
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "w") keys.w = true;
+            if (e.key === "a") keys.a = true;
+            if (e.key === "s") keys.s = true;
+            if (e.key === "d") keys.d = true;
+        });
 
-    document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
-    document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+        document.addEventListener("keyup", (e) => {
+            if (e.key === "w") keys.w = false;
+            if (e.key === "a") keys.a = false;
+            if (e.key === "s") keys.s = false;
+            if (e.key === "d") keys.d = false;
+        });
 
-    let moveLeftPressed = false;
-    let moveRightPressed = false;
-    let moveForwardPressed = false;
+        document.getElementById("wButton").addEventListener("click", () => keys.w = true);
+        document.getElementById("aButton").addEventListener("click", () => keys.a = true);
+        document.getElementById("sButton").addEventListener("click", () => keys.s = true);
+        document.getElementById("dButton").addEventListener("click", () => keys.d = true);
 
-    moveLeft.addEventListener("touchstart", () => moveLeftPressed = true);
-    moveLeft.addEventListener("touchend", () => moveLeftPressed = false);
-    moveRight.addEventListener("touchstart", () => moveRightPressed = true);
-    moveRight.addEventListener("touchend", () => moveRightPressed = false);
-    moveForward.addEventListener("touchstart", () => moveForwardPressed = true);
-    moveForward.addEventListener("touchend", () => moveForwardPressed = false);
+        function movePlayer() {
+            if (keys.w) player.dy = -player.speed;
+            else if (keys.s) player.dy = player.speed;
+            else player.dy = 0;
 
-    function updateInfo() {
-      info.textContent = `Score: ${score} | Health: ${health}`;
-    }
+            if (keys.a) player.dx = -player.speed;
+            else if (keys.d) player.dx = player.speed;
+            else player.dx = 0;
 
-    function resetBall() {
-      ball.y = 200;
-      ball.x = Math.random() * 500 + 50;
-      ball.speedY = 3 * (Math.random() > 0.5 ? 1 : -1);
-      ball.speedX = 0;
-      deflectWindow = false;
-      deflectBtn.disabled = true;
-    }
-
-    function update() {
-      if (gameOver) return;
-
-      if (keys["a"] || keys["arrowleft"] || moveLeftPressed) player.x -= player.speed;
-      if (keys["d"] || keys["arrowright"] || moveRightPressed) player.x += player.speed;
-      if (keys["w"] || moveForwardPressed) player.y -= player.speed;
-
-      player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
-      player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
-
-      if (ball.active) {
-        const ballSpeed = 3;
-        const followSpeed = 5; // Speed at which the ball follows the player
-
-        // Ball follows player horizontally
-        if (ball.x < player.x) {
-          ball.speedX = ballSpeed;
-        } else if (ball.x > player.x) {
-          ball.speedX = -ballSpeed;
+            player.x += player.dx;
+            player.y += player.dy;
         }
 
-        // Ball follows player vertically with a delay effect
-        if (ball.y < player.y) {
-          ball.speedY = Math.abs(ball.speedY);
-        } else {
-          ball.speedY = -Math.abs(ball.speedY);
+        function followPlayer() {
+            const angle = Math.atan2(player.y - ball.y, player.x - ball.x);
+            ball.dx = Math.cos(angle) * ball.speed;
+            ball.dy = Math.sin(angle) * ball.speed;
+            ball.x += ball.dx;
+            ball.y += ball.dy;
         }
 
-        // Adjusting speed of ball follow direction
-        if (ball.x !== player.x) {
-          ball.x += ball.speedX * followSpeed / 10;
+        function checkDeflect() {
+            const dist = Math.hypot(player.x - ball.x, player.y - ball.y);
+            if (dist < player.width / 2 + ball.radius) {
+                ball.speed += 1;
+                ball.dx = -ball.dx;
+                ball.dy = -ball.dy;
+            }
         }
-        if (ball.y !== player.y) {
-          ball.y += ball.speedY * followSpeed / 10;
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            ctx.fillStyle = ball.color;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = bot.color;
+            ctx.fillRect(bot.x, bot.y, bot.width, bot.height);
         }
-      }
 
-      if (bot.x + bot.width / 2 < player.x) bot.x += bot.speed;
-      else if (bot.x + bot.width / 2 > player.x) bot.x -= bot.speed;
-      bot.x = Math.max(0, Math.min(canvas.width - bot.width, bot.x));
-
-      // Ball collision with player to trigger deflection
-      if (
-        ball.speedY > 0 &&
-        ball.y + ball.radius >= player.y &&
-        ball.y <= player.y + player.height &&
-        ball.x > player.x &&
-        ball.x < player.x + player.width
-      ) {
-        deflectWindow = true;
-        deflectBtn.disabled = false;
-      }
-
-      // Ball collision with bot
-      if (
-        ball.speedY < 0 &&
-        ball.y - ball.radius <= bot.y + bot.height &&
-        ball.y >= bot.y &&
-        ball.x > bot.x &&
-        ball.x < bot.x + bot.width
-      ) {
-        ball.speedY *= -1;
-        score++;
-        updateInfo();
-      }
-
-      if (ball.y > canvas.height) {
-        health--;
-        updateInfo();
-        if (health <= 0) {
-          gameOver = true;
-          alert("You lost! Final Score: " + score);
+        function update() {
+            movePlayer();
+            followPlayer();
+            checkDeflect();
+            draw();
+            requestAnimationFrame(update);
         }
-        resetBall();
-      }
 
-      if (ball.y < 0) {
-        ball.speedY *= -1;
-        bot.x = bot.originalX;
-      }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = "cyan";
-      ctx.fillRect(player.x, player.y, player.width, player.height);
-
-      ctx.fillStyle = "lime";
-      ctx.fillRect(bot.x, bot.y, bot.width, bot.height);
-
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-      ctx.fillStyle = "red";
-      ctx.fill();
-    }
-
-    function gameLoop() {
-      update();
-      draw();
-      if (!gameOver) requestAnimationFrame(gameLoop);
-    }
-
-    updateInfo();
-    gameLoop();
-  </script>
+        update();
+    </script>
 </body>
 </html>
