@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Auto Parry Bot Game</title>
+  <title>Player vs Bot Deflect Game</title>
   <style>
     canvas {
       background: #111;
@@ -16,21 +16,31 @@
       font-family: Arial, sans-serif;
     }
     button {
-      padding: 10px 20px;
-      font-size: 18px;
+      padding: 10px 15px;
+      font-size: 16px;
       margin: 5px;
       cursor: pointer;
+    }
+    #mobile-controls {
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>Bot Deflect Game</h1>
-  <p>The bot tries to survive by using the Deflect button. You can also enable Auto Parry (godmode).</p>
+  <h1>Player vs Bot Deflect Game</h1>
+  <p>Use A/D keys, W key, or mobile buttons to move. Click "Deflect" or use Auto Parry!</p>
   <p id="info">Score: 0 | Health: 3</p>
   <canvas id="game" width="600" height="400"></canvas>
+
   <div>
     <button id="deflectBtn">Deflect</button>
     <button id="toggleAutoParry">Enable Auto Parry</button>
+  </div>
+  
+  <div id="mobile-controls">
+    <button id="moveLeft">Left</button>
+    <button id="moveRight">Right</button>
+    <button id="moveForward">Forward</button> <!-- Mobile Forward Button -->
   </div>
 
   <script>
@@ -39,11 +49,17 @@
     const info = document.getElementById("info");
     const deflectBtn = document.getElementById("deflectBtn");
     const toggleAutoParry = document.getElementById("toggleAutoParry");
+    const moveLeft = document.getElementById("moveLeft");
+    const moveRight = document.getElementById("moveRight");
+    const moveForward = document.getElementById("moveForward");
 
-    const bot = { x: 300, y: 350, width: 40, height: 40, speed: 3 };
-    const ball = { x: 300, y: 50, radius: 15, speedY: 2, active: true };
-    let deflectWindow = false;
+    const player = { x: 300, y: 350, width: 40, height: 40, speed: 5 };
+    const bot = { x: 300, y: 10, width: 40, height: 40, speed: 3 };
+    const ball = { x: 300, y: 200, radius: 15, speedY: 3, active: true };
+
+    let keys = {};
     let autoParry = false;
+    let deflectWindow = false;
     let gameOver = false;
     let health = 3;
     let score = 0;
@@ -57,7 +73,7 @@
 
     deflectBtn.addEventListener("click", () => {
       if (deflectWindow && ball.active) {
-        ball.speedY *= -1;
+        ball.speedY *= -1.1;
         deflectWindow = false;
         deflectBtn.disabled = true;
         score++;
@@ -65,13 +81,27 @@
       }
     });
 
+    document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+    document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+    let moveLeftPressed = false;
+    let moveRightPressed = false;
+    let moveForwardPressed = false;
+
+    moveLeft.addEventListener("touchstart", () => moveLeftPressed = true);
+    moveLeft.addEventListener("touchend", () => moveLeftPressed = false);
+    moveRight.addEventListener("touchstart", () => moveRightPressed = true);
+    moveRight.addEventListener("touchend", () => moveRightPressed = false);
+    moveForward.addEventListener("touchstart", () => moveForwardPressed = true);  // Forward Button
+    moveForward.addEventListener("touchend", () => moveForwardPressed = false);
+
     function updateInfo() {
       info.textContent = `Score: ${score} | Health: ${health}`;
     }
 
     function resetBall() {
-      ball.y = 50;
-      ball.speedY = 2;
+      ball.y = 200;
+      ball.speedY = 3 * (Math.random() > 0.5 ? 1 : -1);
       deflectWindow = false;
       deflectBtn.disabled = true;
       ball.x = Math.random() * 500 + 50;
@@ -80,52 +110,58 @@
     function update() {
       if (gameOver) return;
 
-      // Bot AI movement
+      // Player Movement (Left, Right, Forward)
+      if (keys["a"] || keys["arrowleft"] || moveLeftPressed) player.x -= player.speed;
+      if (keys["d"] || keys["arrowright"] || moveRightPressed) player.x += player.speed;
+      if (keys["w"] || moveForwardPressed) player.y -= player.speed; // Moving forward (upward)
+
+      player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+      player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
+
       if (bot.x + bot.width / 2 < ball.x - 5) bot.x += bot.speed;
       else if (bot.x + bot.width / 2 > ball.x + 5) bot.x -= bot.speed;
+      bot.x = Math.max(0, Math.min(canvas.width - bot.width, bot.x));
 
-      // Ball follows bot X
-      ball.x += (bot.x + bot.width / 2 - ball.x) * 0.05;
       ball.y += ball.speedY;
 
-      // Deflect logic
+      
       if (
-        ball.y + ball.radius >= bot.y &&
-        ball.x > bot.x &&
-        ball.x < bot.x + bot.width &&
-        ball.speedY > 0
+        ball.speedY > 0 &&
+        ball.y + ball.radius >= player.y &&
+        ball.y <= player.y + player.height &&
+        ball.x > player.x &&
+        ball.x < player.x + player.width
       ) {
         deflectWindow = true;
         deflectBtn.disabled = false;
-
-        if (autoParry) {
-          deflectBtn.click();
-        } else {
-          // Bot tries to deflect after short delay
-          setTimeout(() => {
-            if (deflectWindow) deflectBtn.click();
-          }, 100);
-        }
+        if (autoParry) deflectBtn.click();
       }
 
-      // Fail check
+      
       if (
-        ball.y + ball.radius > canvas.height ||
-        (deflectWindow && ball.speedY > 0 && ball.y > bot.y + bot.height)
+        ball.speedY < 0 &&
+        ball.y - ball.radius <= bot.y + bot.height &&
+        ball.y >= bot.y &&
+        ball.x > bot.x &&
+        ball.x < bot.x + bot.width
       ) {
-        deflectWindow = false;
-        deflectBtn.disabled = true;
+        ball.speedY *= -1;
+        score++;
+        updateInfo();
+      }
+
+      
+      if (ball.y > canvas.height) {
         health--;
         updateInfo();
         if (health <= 0) {
           gameOver = true;
-          alert("Bot lost! Final Score: " + score);
-          return;
+          alert("You lost! Final Score: " + score);
         }
         resetBall();
       }
 
-      // Ball hits top
+      
       if (ball.y < 0) {
         ball.speedY *= -1;
       }
@@ -134,11 +170,15 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Bot
+      
+      ctx.fillStyle = "cyan";
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+
+    
       ctx.fillStyle = "lime";
       ctx.fillRect(bot.x, bot.y, bot.width, bot.height);
 
-      // Ball
+      
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
       ctx.fillStyle = "red";
