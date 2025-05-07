@@ -73,8 +73,8 @@
 
     deflectBtn.addEventListener("click", () => {
       if (deflectWindow && ball.active) {
-        ball.speedY *= -1;
-        ball.speedX = Math.random() > 0.5 ? 3 : -3;
+        ball.speedY *= -1; // Ball bounces off vertically
+        ball.speedX = Math.random() > 0.5 ? 3 : -3; // Random horizontal speed
         deflectWindow = false;
         deflectBtn.disabled = true;
         score++;
@@ -150,6 +150,7 @@
       else if (bot.x + bot.width / 2 > player.x) bot.x -= bot.speed;
       bot.x = Math.max(0, Math.min(canvas.width - bot.width, bot.x));
 
+      // Ball collision with player to trigger deflection
       if (
         ball.speedY > 0 &&
         ball.y + ball.radius >= player.y &&
@@ -159,9 +160,9 @@
       ) {
         deflectWindow = true;
         deflectBtn.disabled = false;
-        if (autoParry) deflectBtn.click();
       }
 
+      // Ball collision with bot
       if (
         ball.speedY < 0 &&
         ball.y - ball.radius <= bot.y + bot.height &&
