@@ -54,8 +54,8 @@
     const moveForward = document.getElementById("moveForward");
 
     const player = { x: 300, y: 350, width: 40, height: 40, speed: 5 };
-    const bot = { x: 300, y: 10, width: 40, height: 40, speed: 3 };
-    const ball = { x: 300, y: 200, radius: 15, speedY: 3, active: true };
+    const bot = { x: 300, y: 10, width: 40, height: 40, speed: 3, originalX: 300 };
+    const ball = { x: 300, y: 200, radius: 15, speedX: 0, speedY: 3, active: true };
 
     let keys = {};
     let autoParry = false;
@@ -73,7 +73,8 @@
 
     deflectBtn.addEventListener("click", () => {
       if (deflectWindow && ball.active) {
-        ball.speedY *= -1.1;
+        ball.speedY *= -1.1; // increase speed after each deflect
+        ball.speedX = Math.random() > 0.5 ? 3 : -3; // random horizontal direction
         deflectWindow = false;
         deflectBtn.disabled = true;
         score++;
@@ -84,6 +85,7 @@
     document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
     document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
+    // Mobile controls
     let moveLeftPressed = false;
     let moveRightPressed = false;
     let moveForwardPressed = false;
@@ -101,30 +103,43 @@
 
     function resetBall() {
       ball.y = 200;
+      ball.x = Math.random() * 500 + 50;
       ball.speedY = 3 * (Math.random() > 0.5 ? 1 : -1);
+      ball.speedX = 0;
       deflectWindow = false;
       deflectBtn.disabled = true;
-      ball.x = Math.random() * 500 + 50;
     }
 
     function update() {
       if (gameOver) return;
 
-      // Player Movement (Left, Right, Forward)
+ 
       if (keys["a"] || keys["arrowleft"] || moveLeftPressed) player.x -= player.speed;
       if (keys["d"] || keys["arrowright"] || moveRightPressed) player.x += player.speed;
-      if (keys["w"] || moveForwardPressed) player.y -= player.speed; // Moving forward (upward)
+      if (keys["w"] || moveForwardPressed) player.y -= player.speed;
 
       player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
       player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
 
-      if (bot.x + bot.width / 2 < ball.x - 5) bot.x += bot.speed;
-      else if (bot.x + bot.width / 2 > ball.x + 5) bot.x -= bot.speed;
+      // Ball follows player horizontally
+      if (ball.active) {
+        if (ball.y >= player.y) { 
+          if (ball.x < player.x) {
+            ball.speedX = 3; // Move right
+          } else if (ball.x > player.x) {
+            ball.speedX = -3; // Move left
+          }
+        }
+        ball.x += ball.speedX;
+      }
+
+      if (bot.x + bot.width / 2 < player.x) bot.x += bot.speed;
+      else if (bot.x + bot.width / 2 > player.x) bot.x -= bot.speed;
       bot.x = Math.max(0, Math.min(canvas.width - bot.width, bot.x));
+
 
       ball.y += ball.speedY;
 
-      
       if (
         ball.speedY > 0 &&
         ball.y + ball.radius >= player.y &&
@@ -137,7 +152,6 @@
         if (autoParry) deflectBtn.click();
       }
 
-      
       if (
         ball.speedY < 0 &&
         ball.y - ball.radius <= bot.y + bot.height &&
@@ -150,7 +164,7 @@
         updateInfo();
       }
 
-      
+
       if (ball.y > canvas.height) {
         health--;
         updateInfo();
@@ -161,24 +175,22 @@
         resetBall();
       }
 
-      
+ 
       if (ball.y < 0) {
         ball.speedY *= -1;
+        bot.x = bot.originalX;
       }
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      
       ctx.fillStyle = "cyan";
       ctx.fillRect(player.x, player.y, player.width, player.height);
 
-    
       ctx.fillStyle = "lime";
       ctx.fillRect(bot.x, bot.y, bot.width, bot.height);
 
-      
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
       ctx.fillStyle = "red";
