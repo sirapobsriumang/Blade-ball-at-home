@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Auto Parry Bot Game</title>
+  <style>
+    canvas {
+      background: #111;
+      display: block;
+      margin: 0 auto;
+      border: 2px solid white;
+    }
+    body {
+      color: white;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      margin: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bot Deflect Game</h1>
+  <p>The bot tries to survive by using the Deflect button. You can also enable Auto Parry (godmode).</p>
+  <p id="info">Score: 0 | Health: 3</p>
+  <canvas id="game" width="600" height="400"></canvas>
+  <div>
+    <button id="deflectBtn">Deflect</button>
+    <button id="toggleAutoParry">Enable Auto Parry</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const info = document.getElementById("info");
+    const deflectBtn = document.getElementById("deflectBtn");
+    const toggleAutoParry = document.getElementById("toggleAutoParry");
+
+    const bot = { x: 300, y: 350, width: 40, height: 40, speed: 3 };
+    const ball = { x: 300, y: 50, radius: 15, speedY: 2, active: true };
+    let deflectWindow = false;
+    let autoParry = false;
+    let gameOver = false;
+    let health = 3;
+    let score = 0;
+
+    deflectBtn.disabled = true;
+
+    toggleAutoParry.addEventListener("click", () => {
+      autoParry = !autoParry;
+      toggleAutoParry.textContent = autoParry ? "Disable Auto Parry" : "Enable Auto Parry";
+    });
+
+    deflectBtn.addEventListener("click", () => {
+      if (deflectWindow && ball.active) {
+        ball.speedY *= -1;
+        deflectWindow = false;
+        deflectBtn.disabled = true;
+        score++;
+        updateInfo();
+      }
+    });
+
+    function updateInfo() {
+      info.textContent = `Score: ${score} | Health: ${health}`;
+    }
+
+    function resetBall() {
+      ball.y = 50;
+      ball.speedY = 2;
+      deflectWindow = false;
+      deflectBtn.disabled = true;
+      ball.x = Math.random() * 500 + 50;
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      // Bot AI movement
+      if (bot.x + bot.width / 2 < ball.x - 5) bot.x += bot.speed;
+      else if (bot.x + bot.width / 2 > ball.x + 5) bot.x -= bot.speed;
+
+      // Ball follows bot X
+      ball.x += (bot.x + bot.width / 2 - ball.x) * 0.05;
+      ball.y += ball.speedY;
+
+      // Deflect logic
+      if (
+        ball.y + ball.radius >= bot.y &&
+        ball.x > bot.x &&
+        ball.x < bot.x + bot.width &&
+        ball.speedY > 0
+      ) {
+        deflectWindow = true;
+        deflectBtn.disabled = false;
+
+        if (autoParry) {
+          deflectBtn.click();
+        } else {
+          // Bot tries to deflect after short delay
+          setTimeout(() => {
+            if (deflectWindow) deflectBtn.click();
+          }, 100);
+        }
+      }
+
+      // Fail check
+      if (
+        ball.y + ball.radius > canvas.height ||
+        (deflectWindow && ball.speedY > 0 && ball.y > bot.y + bot.height)
+      ) {
+        deflectWindow = false;
+        deflectBtn.disabled = true;
+        health--;
+        updateInfo();
+        if (health <= 0) {
+          gameOver = true;
+          alert("Bot lost! Final Score: " + score);
+          return;
+        }
+        resetBall();
+      }
+
+      // Ball hits top
+      if (ball.y < 0) {
+        ball.speedY *= -1;
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Bot
+      ctx.fillStyle = "lime";
+      ctx.fillRect(bot.x, bot.y, bot.width, bot.height);
+
+      // Ball
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "red";
+      ctx.fill();
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      if (!gameOver) requestAnimationFrame(gameLoop);
+    }
+
+    updateInfo();
+    gameLoop();
+  </script>
+</body>
+</html>
