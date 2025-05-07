@@ -121,19 +121,29 @@
 
       if (ball.active) {
         const ballSpeed = 3;
+        const followSpeed = 5; // Speed at which the ball follows the player
+
+        // Ball follows player horizontally
         if (ball.x < player.x) {
           ball.speedX = ballSpeed;
         } else if (ball.x > player.x) {
           ball.speedX = -ballSpeed;
         }
+
+        // Ball follows player vertically with a delay effect
         if (ball.y < player.y) {
           ball.speedY = Math.abs(ball.speedY);
         } else {
           ball.speedY = -Math.abs(ball.speedY);
         }
 
-        ball.x += ball.speedX;
-        ball.y += ball.speedY;
+        // Adjusting speed of ball follow direction
+        if (ball.x !== player.x) {
+          ball.x += ball.speedX * followSpeed / 10;
+        }
+        if (ball.y !== player.y) {
+          ball.y += ball.speedY * followSpeed / 10;
+        }
       }
 
       if (bot.x + bot.width / 2 < player.x) bot.x += bot.speed;
