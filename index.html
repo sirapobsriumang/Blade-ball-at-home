@@ -40,7 +40,7 @@
   <div id="mobile-controls">
     <button id="moveLeft">Left</button>
     <button id="moveRight">Right</button>
-    <button id="moveForward">Forward</button> <!-- Mobile Forward Button -->
+    <button id="moveForward">Forward</button>
   </div>
 
   <script>
@@ -73,8 +73,8 @@
 
     deflectBtn.addEventListener("click", () => {
       if (deflectWindow && ball.active) {
-        ball.speedY *= -1.1; // increase speed after each deflect
-        ball.speedX = Math.random() > 0.5 ? 3 : -3; // random horizontal direction
+        ball.speedY *= -1;
+        ball.speedX = Math.random() > 0.5 ? 3 : -3;
         deflectWindow = false;
         deflectBtn.disabled = true;
         score++;
@@ -85,7 +85,6 @@
     document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
     document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-    // Mobile controls
     let moveLeftPressed = false;
     let moveRightPressed = false;
     let moveForwardPressed = false;
@@ -94,7 +93,7 @@
     moveLeft.addEventListener("touchend", () => moveLeftPressed = false);
     moveRight.addEventListener("touchstart", () => moveRightPressed = true);
     moveRight.addEventListener("touchend", () => moveRightPressed = false);
-    moveForward.addEventListener("touchstart", () => moveForwardPressed = true);  // Forward Button
+    moveForward.addEventListener("touchstart", () => moveForwardPressed = true);
     moveForward.addEventListener("touchend", () => moveForwardPressed = false);
 
     function updateInfo() {
@@ -113,7 +112,6 @@
     function update() {
       if (gameOver) return;
 
- 
       if (keys["a"] || keys["arrowleft"] || moveLeftPressed) player.x -= player.speed;
       if (keys["d"] || keys["arrowright"] || moveRightPressed) player.x += player.speed;
       if (keys["w"] || moveForwardPressed) player.y -= player.speed;
@@ -121,24 +119,26 @@
       player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
       player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
 
-      // Ball follows player horizontally
       if (ball.active) {
-        if (ball.y >= player.y) { 
-          if (ball.x < player.x) {
-            ball.speedX = 3; // Move right
-          } else if (ball.x > player.x) {
-            ball.speedX = -3; // Move left
-          }
+        const ballSpeed = 3;
+        if (ball.x < player.x) {
+          ball.speedX = ballSpeed;
+        } else if (ball.x > player.x) {
+          ball.speedX = -ballSpeed;
         }
+        if (ball.y < player.y) {
+          ball.speedY = Math.abs(ball.speedY);
+        } else {
+          ball.speedY = -Math.abs(ball.speedY);
+        }
+
         ball.x += ball.speedX;
+        ball.y += ball.speedY;
       }
 
       if (bot.x + bot.width / 2 < player.x) bot.x += bot.speed;
       else if (bot.x + bot.width / 2 > player.x) bot.x -= bot.speed;
       bot.x = Math.max(0, Math.min(canvas.width - bot.width, bot.x));
-
-
-      ball.y += ball.speedY;
 
       if (
         ball.speedY > 0 &&
@@ -164,7 +164,6 @@
         updateInfo();
       }
 
-
       if (ball.y > canvas.height) {
         health--;
         updateInfo();
@@ -175,7 +174,6 @@
         resetBall();
       }
 
- 
       if (ball.y < 0) {
         ball.speedY *= -1;
         bot.x = bot.originalX;
